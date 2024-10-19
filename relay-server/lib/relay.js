@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { RealtimeClient } from '@openai/realtime-api-beta';
+import { instructions } from '../utils/instruction_config.js';
 
 export class RealtimeRelay {
   constructor(apiKey) {
@@ -47,6 +48,10 @@ export class RealtimeRelay {
     const messageHandler = (data) => {
       try {
         const event = JSON.parse(data);
+        // A hack for instruction update. Then we could maintain instructions in relay server
+        if(event.type == "session.update"){
+          event.session.instructions = instructions;
+        } 
         this.log(`Relaying "${event.type}" to OpenAI`);
         client.realtime.send(event.type, event);
       } catch (e) {
