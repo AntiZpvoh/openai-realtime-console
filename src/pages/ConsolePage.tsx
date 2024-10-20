@@ -665,7 +665,7 @@ export function ConsolePage() {
           <div className="content-actions">
             <Toggle
               defaultValue={false}
-              labels={['manual', 'vad']}
+              labels={['manual', 'auto']}
               values={['none', 'server_vad']}
               onChange={(_, value) => changeTurnEndType(value)}
             />
