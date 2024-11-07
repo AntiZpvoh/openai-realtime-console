@@ -181,10 +181,11 @@ export function ConsolePage() {
 
     // Connect to realtime API
     await client.connect();
+    client.realtime.send("auth.token", {"token": "1234"})
     client.sendUserMessageContent([
       {
         type: `input_text`,
-        text: `Hello!`,
+        text: `Hello! We can start the test.`,
         // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
       },
     ]);

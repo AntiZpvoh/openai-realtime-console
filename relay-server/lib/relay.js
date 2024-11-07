@@ -1,10 +1,44 @@
 import { WebSocketServer } from 'ws';
 import { RealtimeClient } from '@openai/realtime-api-beta';
-import { instructions } from '../utils/instruction_config.js';
+import { generateInstruction } from '../utils/instruction_config.js';
+import axios from 'axios';
 
+class Session {
+  constructor(dataEndpoint, sessionJson) {
+    this.dataEndpoint = dataEndpoint;
+    if(sessionJson){
+      this.set(sessionJson);
+    }
+  }
+
+  set(sessionJson) {
+    this.id = sessionJson["id"];
+    this.userId = sessionJson["user_id"];
+    this.openaiSessionId = sessionJson["openai_session_id"];
+    this.questionGroups = sessionJson["question_groups"];
+    this.questionsCsv = sessionJson["questions_csv"];
+  }
+
+  async createSession(sessionRequest) {
+    const response = await axios.post(`${this.dataEndpoint}/v1/session/`, sessionRequest);
+    this.set(response.data["result"]);
+  }
+
+  updateSession(sessionRequest) {
+    axios.put(`${this.dataEndpoint}/v1/session/${this.id}/`, sessionRequest)
+      .then(response => {
+        console.log(response.data);
+        this.set(response.data["result"])
+      })
+      .catch((error) => {
+        console.error('[Error]', error);
+      });
+  }
+}
 export class RealtimeRelay {
-  constructor(apiKey) {
+  constructor(apiKey, dataEndpoint) {
     this.apiKey = apiKey;
+    this.dataEndpoint = dataEndpoint;
     this.sockets = new WeakMap();
     this.wss = null;
   }
@@ -35,8 +69,29 @@ export class RealtimeRelay {
     this.log(`Connecting with key "${this.apiKey.slice(0, 3)}..."`);
     const client = new RealtimeClient({ apiKey: this.apiKey });
 
+    let session = new Session(this.dataEndpoint);
+
     // Relay: OpenAI Realtime API Event -> Browser Event
     client.realtime.on('server.*', (event) => {
+      if(event.type == 'session.created'){
+        this.log(`session created: ${event.session.id}`);
+        const sessionRequest = {
+          "user_id": 1,
+          "openai_session_id": event.session.id
+        };
+        // session.updateSession(sessionRequest);
+        session.createSession(sessionRequest)
+          .then(() => {
+            console.log("session info: ", session);
+            client.updateSession({
+              instructions: generateInstruction(session.questionsCsv)
+            });
+            console.log("send update session ", client.sessionConfig);
+          })
+          .catch((error) => {
+            console.error('[Error]', error);
+          });
+      }
       this.log(`Relaying "${event.type}" to Client`);
       ws.send(JSON.stringify(event));
     });
@@ -50,7 +105,7 @@ export class RealtimeRelay {
         const event = JSON.parse(data);
         // A hack for instruction update. Then we could maintain instructions in relay server
         if(event.type == "session.update"){
-          event.session.instructions = instructions;
+          event.session.instructions = generateInstruction(session.questionsCsv);
         } 
         this.log(`Relaying "${event.type}" to OpenAI`);
         client.realtime.send(event.type, event);

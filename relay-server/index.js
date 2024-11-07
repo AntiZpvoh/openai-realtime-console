@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config({ override: true });
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const DATA_ENDPOINT = process.env.DATA_ENDPOINT || 'http://localhost:8000';
 
 if (!OPENAI_API_KEY) {
   console.error(
@@ -14,5 +15,5 @@ if (!OPENAI_API_KEY) {
 
 const PORT = parseInt(process.env.PORT) || 8081;
 
-const relay = new RealtimeRelay(OPENAI_API_KEY);
+const relay = new RealtimeRelay(OPENAI_API_KEY, DATA_ENDPOINT);
 relay.listen(PORT);
