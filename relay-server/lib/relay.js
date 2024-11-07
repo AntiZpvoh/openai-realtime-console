@@ -59,11 +59,11 @@ export class RealtimeRelay {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = url.pathname;
 
-    if (pathname !== '/') {
-      this.log(`Invalid pathname: "${pathname}"`);
-      ws.close();
-      return;
-    }
+    // if (pathname !== '/') {
+    //   this.log(`Invalid pathname: "${pathname}"`);
+    //   ws.close();
+    //   return;
+    // }
 
     // Instantiate new client
     this.log(`Connecting with key "${this.apiKey.slice(0, 3)}..."`);
